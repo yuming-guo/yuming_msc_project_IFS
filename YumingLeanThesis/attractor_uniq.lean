@@ -114,6 +114,10 @@ theorem dist_union_le_max_dist_ind (hfi : ∀ i, Set.MapsTo (f i) D D) (hD : IsC
   have hD' : IsBounded D := IsCompact.isBounded hD
 
   intro A B hAn hBn hAc hBc hAD hBD
+
+  apply ENNReal.le_of_forall_pos_le_add
+  intro ε hε h
+
   -- This lemma bounds the hausdorff distance between two sets
   apply hausdorffEdist_le_of_mem_edist
 
@@ -156,9 +160,8 @@ theorem dist_union_le_max_dist_ind (hfi : ∀ i, Set.MapsTo (f i) D D) (hD : IsC
             · exact hBc
           exact h2b' hy
         use y
-      specialize h2
 
-      -- exact le_of_forall_pos_lt_add_ENNReal h2
-      sorry
+      obtain ⟨y, hy, hy'⟩ := h2 ε (by simpa)
+      exact ⟨y, hy, hy'.le⟩
     · exact hAc -- we have from the definition that A is compact
   · sorry  -- this one is the same as the 1st goal, just different order of A and B
