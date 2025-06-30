@@ -157,8 +157,8 @@ theorem dist_union_le_max_dist_ind (hfi : ∀ i, Set.MapsTo (f i) D D) (hD : IsC
           exact h2b' hy
         use y
       specialize h2
-      
-      exact le_of_forall_pos_lt_add_ENNReal h2
+
+      -- exact le_of_forall_pos_lt_add_ENNReal h2
       sorry
     · exact hAc -- we have from the definition that A is compact
   · sorry  -- this one is the same as the 1st goal, just different order of A and B

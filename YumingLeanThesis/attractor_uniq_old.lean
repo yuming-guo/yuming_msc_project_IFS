@@ -5,6 +5,10 @@ import Mathlib
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+/-!
+# This is the old file for coursework 2, which is to be migrated to the new file gradually.
+-/
+
 open Bornology EMetric ENNReal
 
 namespace coursework2 -- sets up the namespace
