@@ -5,7 +5,7 @@ set_option autoImplicit false
 
 /-!
 # Iterated Function Systems
-
+(Bit of an alternative definition of IFS, not sure if that would be a great idea)
 -/
 
 -- let X be a complete metric space
