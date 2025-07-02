@@ -164,4 +164,55 @@ theorem dist_union_le_max_dist_ind (hfi : ∀ i, Set.MapsTo (f i) D D) (hD : IsC
       obtain ⟨y, hy, hy'⟩ := h2 ε (by simpa)
       exact ⟨y, hy, hy'.le⟩
     · exact hAc -- we have from the definition that A is compact
-  · sorry  -- this one is the same as the 1st goal, just different order of A and B
+
+  -- now we do the same for the other set - here commences the copy-paste
+  · intro x hx
+    rw [hS] at hx
+
+    · simp only [Set.mem_iUnion] at hx
+      obtain ⟨i, hx⟩ := hx
+      have h1 : ∀ ε : ENNReal, ε ≠ 0 → hausdorffEdist (f i '' B) (f i '' A)
+          < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
+        intro ε hε
+        have h1' : hausdorffEdist (f i '' B) (f i '' A)
+            ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) := le_iSup_iff.mpr fun b a => a i
+        have h1b : hausdorffEdist (f i '' B) (f i '' A) ≠ ⊤ := by
+          apply Metric.hausdorffEdist_ne_top_of_nonempty_of_bounded
+          · exact Set.Nonempty.image (f i) hBn
+          · exact Set.Nonempty.image (f i) hAn
+          · have h1ba : IsBounded B := IsBounded.subset hD' hBD
+            exact contr_maps_bounded_to_bounded n c i hc hSi B hBD h1ba
+          · have h1bb : IsBounded A := IsBounded.subset hD' hAD
+            exact contr_maps_bounded_to_bounded n c i hc hSi A hAD h1bb
+        exact lt_add_of_le_of_pos_ENNReal hε h1b h1'
+
+      have h2 : ∀ ε, 0 < ε → ∃ y ∈ S A,
+          edist x y < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
+        intro ε hε
+        have h2' : ∀ ε, ε ≠ 0 → ∃ y ∈ f i '' A,
+            edist x y < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
+          exact fun ε a => exists_edist_lt_of_hausdorffEdist_lt hx (h1 ε a)
+        have hε' : ε ≠ 0 := Ne.symm (ne_of_lt hε)
+        obtain ⟨y, hy, hxy⟩ := h2' ε hε'
+        have h2b : y ∈ S A := by
+          have h2b' : (f i '' A) ⊆ S A := by
+            rw [hS]
+            · exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
+            · exact hAc
+          exact h2b' hy
+        use y
+
+      -- after the copy-paste, all the hausdorffEdists are in the opposite order, so we reverse it
+      have h3 : ⨆ i, hausdorffEdist (f i '' B) (f i '' A) =
+          ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := by
+        have h3' : ∀ i, hausdorffEdist (f i '' B) (f i '' A) =
+            hausdorffEdist (f i '' A) (f i '' B) := by
+          intro i
+          exact hausdorffEdist_comm
+        exact iSup_congr h3'
+      rw [h3] at h2
+
+      -- now that h2 is in the correct form, we return to copy-pasting
+      obtain ⟨y, hy, hy'⟩ := h2 ε (by simpa)
+      exact ⟨y, hy, hy'.le⟩
+    · exact hBc
