@@ -57,6 +57,29 @@ lemma LipschitzOnWith_Weaken {α : Type} {β : Type} [PseudoEMetricSpace α] [Ps
   exact Preorder.le_trans (edist (f x) (f y)) (↑K * edist x y) (↑K' * edist x y) (hf hx hy) h1
 
 
+lemma exists_edist_le_of_hausdorffEdist_le {α : Type} {β : Type} [PseudoEMetricSpace α]
+    {x : α} {s t : Set α} {r : ℝ≥0∞} (h : x ∈ s) (ht : t.Nonempty) (H : hausdorffEdist s t ≤ r) :
+    ∃ y ∈ t, edist x y ≤ r := by
+  by_cases hr : r = ⊤
+  · rw [hr]
+    simp only [le_top, and_true]
+    exact ht
+  · have H' : ∀ ε : ENNReal, 0 < ε → hausdorffEdist s t < r + ε := by
+      intro ε hε
+      refine lt_add_of_le_of_pos_ENNReal ?_ ?_ ?_
+      · exact Ne.symm (ne_of_lt hε)
+      · exact ne_top_of_le_ne_top hr H
+      . exact H
+
+    have h₁ : ∀ ε : ENNReal, 0 < ε → ∃ y ∈ t, edist x y < r + ε := by
+      intro ε hε
+      specialize H' ε hε
+      exact exists_edist_lt_of_hausdorffEdist_lt h H'
+
+
+    sorry
+
+
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
@@ -217,7 +240,8 @@ lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
     · exact hBc
 
 
--- now we move on to proving [1][p.125, equation 9.5]
+-- now we move on to proving [1][p.125, equation 9.5], i.e. the union of the contractions has
+-- lipschitz constant at most the supremum of the individual lipschitz constants
 lemma union_of_lipschitz_contracts (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
@@ -230,6 +254,58 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
       (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) := by
     exact dist_union_le_sup_ind_dist n c hD hS hc hSi A B hAn hBn hAc hBc hAD hBD
 
+  have h' : ⨆ i, hausdorffEdist (f i '' A) (f i '' B) ≤
+      (⨆ i, c i) * hausdorffEdist A B := by
+    have h₁ : ∀ i, hausdorffEdist (f i '' A) (f i '' B) ≤
+        (c i) * hausdorffEdist A B := by
+      intro i
+      apply ENNReal.le_of_forall_pos_le_add
+      intro ε hε hci
+      apply hausdorffEdist_le_of_mem_edist
+      · intro x hx
+        have h₁a : ∀ ε : NNReal, 0 < ε → hausdorffEdist (f i '' A) (f i '' B) ≤
+            (c i) * hausdorffEdist A B + ε := by
+          intro ε hε
+          sorry
 
-  sorry
+        have h₁b : ∃ y ∈ f i '' B,
+            edist x y < (c i) * hausdorffEdist A B + ε := by
+          sorry
+        have h₁b' : ∃ y ∈ f i '' B,
+            edist x y ≤ (c i) * hausdorffEdist A B + ε := by
+          rcases h₁b with ⟨y, hy, hxy⟩
+          use y
+          constructor
+          · exact hy
+          · exact le_of_lt hxy
+        exact h₁b'
+      · sorry -- This is same as first part.
+
+    -- we take this outside since we use it twice
+    have hci : ∀ i, c i ≤ ⨆ i, c i := by
+      intro i
+      refine le_ciSup ?_ i
+      simp_all only [Finite.bddAbove_range]
+
+    -- supremum of the c i is greater than or equal to each c i, of course
+    have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤
+        (⨆ i, c i) * hausdorffEdist A B := by
+      intro i
+      have h₁b₂ : hausdorffEdist A B ≤ hausdorffEdist A B := le_rfl -- this is a bit sus
+      refine mul_le_mul ?_ h₁b₂ ?_ ?_
+      specialize hci i
+      · exact coe_le_coe.mpr hci
+      · exact zero_le (hausdorffEdist A B)
+      · simp_all only [le_refl, zero_le]
+
+    simp only [iSup_le_iff]
+    intro i
+    specialize h₁ i
+    specialize hci i
+    have h₃ : (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by
+      simp_all
+    exact le_trans h₁ h₃
+  exact le_trans h h'
+
+
 end attractor_uniq -- close the namespace
