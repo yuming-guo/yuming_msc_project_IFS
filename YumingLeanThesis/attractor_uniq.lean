@@ -18,6 +18,11 @@ auxiliary lemmas.
 * `LipschitzOnWith_Weaken`: The LipschitzOnWith version of the lemma `LipschitzWith.weaken`. If `f`
   is LipschitzOnWith with constant `K` on a set `s`, and `K ≤ K'`, then `f` is LipschitzOnWith with
   constant `K'` on the same set `s`.
+* `compact_exists_edist_le_of_hausdorffEdist_le`: If `x` is in a set `s`, and `t` is a nonempty
+  compact set, and the Hausdorff distance between `s` and `t` is bounded by `r`, then there exists
+  a point `y` in `t` such that the distance from `x` to `y` is at most `r`. This is an extention of
+  the `exists_edist_lt_of_hausdorffEdist_lt` lemma, which proves only the less than case, without
+  requiring compactness of `t`.
 * `contr_maps_bounded_to_bounded`: If `f` is a contraction mapping, then it maps bounded sets to
   bounded sets.
 * `dist_union_le_max_dist_ind`: Let `S` be the union of the images of sets `A` and `B` under a
@@ -33,14 +38,14 @@ auxiliary lemmas.
 -/
 
 
-open Bornology Metric ENNReal EMetric
+open Bornology Metric ENNReal EMetric IsCompact
 
 namespace attractor_uniq -- sets up the namespace
 
 
 /- This is the lemma that, in ENNReals, if b is non-infinity and a > 0, then b ≤ c implies b < c + a.
 To be added into mathlib. -/
-lemma lt_add_of_le_of_pos_ENNReal {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠ ⊤) (hbc : b ≤ c) :
+lemma ENNReal_lt_add_of_le_of_pos {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠ ⊤) (hbc : b ≤ c) :
     b < c + a := by
   obtain rfl | hbc := eq_or_lt_of_le hbc
   · exact lt_add_right hb ha
@@ -57,33 +62,76 @@ lemma LipschitzOnWith_Weaken {α : Type} {β : Type} [PseudoEMetricSpace α] [Ps
   exact Preorder.le_trans (edist (f x) (f y)) (↑K * edist x y) (↑K' * edist x y) (hf hx hy) h1
 
 
-lemma exists_edist_le_of_hausdorffEdist_le {α : Type} {β : Type} [PseudoEMetricSpace α]
-    {x : α} {s t : Set α} {r : ℝ≥0∞} (h : x ∈ s) (ht : t.Nonempty) (H : hausdorffEdist s t ≤ r) :
-    ∃ y ∈ t, edist x y ≤ r := by
-  by_cases hr : r = ⊤
-  · rw [hr]
-    simp only [le_top, and_true]
-    exact ht
-  · have H' : ∀ ε : ENNReal, 0 < ε → hausdorffEdist s t < r + ε := by
-      intro ε hε
-      refine lt_add_of_le_of_pos_ENNReal ?_ ?_ ?_
-      · exact Ne.symm (ne_of_lt hε)
-      · exact ne_top_of_le_ne_top hr H
-      . exact H
-
-    have h₁ : ∀ ε : ENNReal, 0 < ε → ∃ y ∈ t, edist x y < r + ε := by
-      intro ε hε
-      specialize H' ε hε
-      exact exists_edist_lt_of_hausdorffEdist_lt h H'
+/- this is the lemma that, if x is in s, and t is a nonempty compact set, and the Hausdorff distance
+between s and t is bounded by r, then there exists a point y in t such that the distance from x to y
+is at most r. This is an extention of the `exists_edist_lt_of_hausdorffEdist_lt` lemma, which proves
+only the less than case, without requiring compactness of t. -/
+lemma compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpace α]
+    {x : α} {s t : Set α} {r : ℝ≥0∞} (hx : x ∈ s) (ht : t.Nonempty)
+    (H : hausdorffEdist s t ≤ r) (htc : IsCompact t) : ∃ y ∈ t, edist x y ≤ r := by
+    have h₁ : infEdist x t ≤ r := by
+      have h₁' : infEdist x t ≤ hausdorffEdist s t := infEdist_le_hausdorffEdist_of_mem hx
+      exact le_trans h₁' H
+    have h₂ : ∃ y ∈ t, infEdist x t = edist x y := exists_infEdist_eq_edist htc ht x
+    -- bhavik pointed this lemma out
+    obtain ⟨y, hy, hxy⟩ := h₂
+    rw [hxy] at h₁
+    use y
 
 
+/- this is the lemma that, if f is a Lipschitz map on a compact set S, then it maps a compact set A
+to a compact sets f '' A. -/
+lemma lipschitz_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSpace α]
+    [PseudoEMetricSpace β] (S : Set α) (f : α → β) (K : NNReal) (hf : LipschitzOnWith K f S) :
+    ∀ A ⊆ S, IsCompact A → IsCompact (f '' A) := by
+  intro A hAD hA
+  -- we use the fact that compactness is preserved under continuous maps
+  refine IsCompact.image_of_continuousOn hA ?_
+  have hf₁ : ContinuousOn f S := LipschitzOnWith.continuousOn hf
+  have hf₂ : ContinuousOn f A := ContinuousOn.mono hf₁ hAD
+  exact hf₂
+
+
+/- this is the lemma that, if f is a Lipschitz map on a set s, then it restricts the Hausdorff
+distance between two sets t and u by a factor of the lipschitz constant of f. -/
+lemma lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D s t : Set α}
+    {f : α → α} {K : NNReal} (hD : IsCompact D) (hs : s ⊆ D) (ht : t ⊆ D)
+    (hf : LipschitzOnWith K f D) :
+    hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
+  apply hausdorffEdist_le_of_mem_edist
+  · intro x₁ hx₁
+    have h₁ : ∀ x ∈ s, ∀ y ∈ t, edist (f x) (f y) ≤ K * edist x y := by
+      intro x hx y hy
+      delta LipschitzOnWith at hf
+      have hxD : x ∈ D := hs hx
+      have hyD : y ∈ D := ht hy
+      specialize hf hxD hyD
+      exact hf
+    have h₂ : ∀ x ∈ s, ∃ y ∈ t, edist x y ≤ hausdorffEdist s t := by
+      intro x hx
+      sorry
+    have h₃ : ∀ x ∈ s, ∃ y ∈ t, edist (f x) (f y) ≤ K * hausdorffEdist s t := by
+      intro x hx
+      obtain ⟨y₁, hy, hxy⟩ := h₂ x hx
+      specialize h₁ x hx y₁ hy
+      specialize h₂ x hx
+      cases' h₂ with y hy hxy
+      obtain ⟨h1, h2⟩ := hy
+      use y
+      use h1
+      have h₃' : K * edist x y ≤ K * hausdorffEdist s t := by
+        have h₃'' : edist x y ≤ hausdorffEdist s t := h2
+        exact mul_le_mul_left' h2 ↑K
+      exact LipschitzOnWith.edist_le_mul_of_le hf (hs hx) (ht h1) h2
+    specialize h₃ x₁
     sorry
+  · sorry
 
 
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
-variable (n : ℕ) {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} [Fintype ι] (c : ι → NNReal)
+variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} [Fintype ι] (c : ι → NNReal)
   (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)} (ε : ENNReal)
   (x : EuclideanSpace ℝ (Fin n)) {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
@@ -125,106 +173,45 @@ lemma contr_maps_bounded_to_bounded (hc : ∀ i, c i < 1)
     · exact a_1
     · exact a_3
 
-
 /- The lemma that d(S(A), S(B) ≤ max_{1 ≤ i ≤ m} d(S_i(A), S_i(B).
 Let it such that if x is in D, then S_i(x) is in D; Define S(A) to be the union of all S_i(A)s. -/
 lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
-    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
+    (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
     ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D →
       hausdorffEdist (S A) (S B) ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := by
-  -- first we prove that D is bounded
   have hD' : IsBounded D := IsCompact.isBounded hD
   intro A B hAn hBn hAc hBc hAD hBD
-
-  apply ENNReal.le_of_forall_pos_le_add
-  intro ε hε h
-
-  -- This lemma bounds the hausdorff distance between two sets
   apply hausdorffEdist_le_of_mem_edist
 
-  /- Now show that for any point in each set, there exists another point in the other set within
-  the bound -/
   · intro x hx
     rw [hS] at hx
-
     · simp only [Set.mem_iUnion] at hx
       obtain ⟨i, hx⟩ := hx
-      have h₁ : ∀ ε : ENNReal, ε ≠ 0 → hausdorffEdist (f i '' A) (f i '' B)
-          < (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) + ε := by
-        intro ε hε
-        have h₁' : hausdorffEdist (f i '' A) (f i '' B)
-            ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := le_iSup_iff.mpr fun b a => a i
-        have h₁b : hausdorffEdist (f i '' A) (f i '' B) ≠ ⊤ := by
-          -- two sets nonmpty and bounded implies finite hausdorff distance
-          apply Metric.hausdorffEdist_ne_top_of_nonempty_of_bounded
-          -- here we need 4 things: (f i '' A) and (f i '' B) each nonempty, and bounded
-          · exact Set.Nonempty.image (f i) hAn
-          · exact Set.Nonempty.image (f i) hBn
-          · have h₁b₁ : IsBounded A := IsBounded.subset hD' hAD
-            exact contr_maps_bounded_to_bounded n c i hc hSi A hAD h₁b₁ -- this is a lemma to be proven
-          · have h₁b₂ : IsBounded B := IsBounded.subset hD' hBD
-            exact contr_maps_bounded_to_bounded n c i hc hSi B hBD h₁b₂ -- same as above
-        exact lt_add_of_le_of_pos_ENNReal hε h₁b h₁' -- apply the lemma we proved earlier
+      have h₁ : hausdorffEdist (f i '' A) (f i '' B)
+          ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := le_iSup_iff.mpr fun b a => a i
+      have h₂ : ∃ y ∈ f i '' B, edist x y ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) :=
+          compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hBn) h₁
+          (lipschitz_maps_compact_to_compact D (f i) (c i) (hSi i) B hBD hBc)
+      obtain ⟨y, hy, hxy⟩ := h₂
+      have h₃ : y ∈ S B := by
+        have h₃' : (f i '' B) ⊆ S B := by
+          rw [hS]
+          · exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
+          · exact hBc
+        exact h₃' hy
+      use y
+    · exact hAc
 
-      have h₂ : ∀ ε, 0 < ε → ∃ y ∈ S B,
-          edist x y < (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) + ε := by
-        intro ε hε
-        have h₂' : ∀ ε, ε ≠ 0 → ∃ y ∈ f i '' B,
-            edist x y < (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) + ε := by
-          exact fun ε a => exists_edist_lt_of_hausdorffEdist_lt hx (h₁ ε a)
-        have hε' : ε ≠ 0 := Ne.symm (ne_of_lt hε)
-        obtain ⟨y, hy, hxy⟩ := h₂' ε hε'
-        have h₂b : y ∈ S B := by
-          have h₂b' : (f i '' B) ⊆ S B := by
-            rw [hS]
-            · exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
-            · exact hBc
-          exact h₂b' hy
-        use y
-
-      obtain ⟨y, hy, hy'⟩ := h₂ ε (by simpa)
-      exact ⟨y, hy, hy'.le⟩
-    · exact hAc -- we have from the definition that A is compact
-
-    -- now we do the same for the other set - here commences the copy-paste
   · intro x hx
     rw [hS] at hx
-
     · simp only [Set.mem_iUnion] at hx
       obtain ⟨i, hx⟩ := hx
-      have h₁ : ∀ ε : ENNReal, ε ≠ 0 → hausdorffEdist (f i '' B) (f i '' A)
-          < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
-        intro ε hε
-        have h₁' : hausdorffEdist (f i '' B) (f i '' A)
-            ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) := le_iSup_iff.mpr fun b a => a i
-        have h1b : hausdorffEdist (f i '' B) (f i '' A) ≠ ⊤ := by
-          apply Metric.hausdorffEdist_ne_top_of_nonempty_of_bounded
-          · exact Set.Nonempty.image (f i) hBn
-          · exact Set.Nonempty.image (f i) hAn
-          · have h₁b₁ : IsBounded B := IsBounded.subset hD' hBD
-            exact contr_maps_bounded_to_bounded n c i hc hSi B hBD h₁b₁
-          · have h₁b₂ : IsBounded A := IsBounded.subset hD' hAD
-            exact contr_maps_bounded_to_bounded n c i hc hSi A hAD h₁b₂
-        exact lt_add_of_le_of_pos_ENNReal hε h1b h₁'
-
-      have h₂ : ∀ ε, 0 < ε → ∃ y ∈ S A,
-          edist x y < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
-        intro ε hε
-        have h₂' : ∀ ε, ε ≠ 0 → ∃ y ∈ f i '' A,
-            edist x y < (⨆ i, hausdorffEdist (f i '' B) (f i '' A)) + ε := by
-          exact fun ε a => exists_edist_lt_of_hausdorffEdist_lt hx (h₁ ε a)
-        have hε' : ε ≠ 0 := Ne.symm (ne_of_lt hε)
-        obtain ⟨y, hy, hxy⟩ := h₂' ε hε'
-        have h₂b : y ∈ S A := by
-          have h₂b' : (f i '' A) ⊆ S A := by
-            rw [hS]
-            · exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
-            · exact hAc
-          exact h₂b' hy
-        use y
-
-        -- after the copy-paste, all the hausdorffEdists are in the opposite order, so we reverse it
+      have h₁ : hausdorffEdist (f i '' B) (f i '' A)
+          ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) := le_iSup_iff.mpr fun b a => a i
+      have h₂ : ∃ y ∈ f i '' A, edist x y ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) :=
+          compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hAn) h₁
+          (lipschitz_maps_compact_to_compact D (f i) (c i) (hSi i) A hAD hAc)
       have h₃ : ⨆ i, hausdorffEdist (f i '' B) (f i '' A) =
           ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := by
         have h₃' : ∀ i, hausdorffEdist (f i '' B) (f i '' A) =
@@ -233,10 +220,15 @@ lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
           exact hausdorffEdist_comm
         exact iSup_congr h₃'
       rw [h₃] at h₂
+      obtain ⟨y, hy, hxy⟩ := h₂
 
-        -- now that h2 is in the correct form, we return to copy-pasting
-      obtain ⟨y, hy, hy'⟩ := h₂ ε (by simpa)
-      exact ⟨y, hy, hy'.le⟩
+      have h₄ : y ∈ S A := by
+        have h₃' : (f i '' A) ⊆ S A := by
+          rw [hS]
+          · exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
+          · exact hAc
+        exact h₃' hy
+      use y
     · exact hBc
 
 
@@ -252,40 +244,36 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
   -- we begin by applying the previous lemma
   have h : hausdorffEdist (S A) (S B) ≤
       (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) := by
-    exact dist_union_le_sup_ind_dist n c hD hS hc hSi A B hAn hBn hAc hBc hAD hBD
+    exact dist_union_le_sup_ind_dist c hD hS hSi A B hAn hBn hAc hBc hAD hBD
 
   have h' : ⨆ i, hausdorffEdist (f i '' A) (f i '' B) ≤
       (⨆ i, c i) * hausdorffEdist A B := by
+
     have h₁ : ∀ i, hausdorffEdist (f i '' A) (f i '' B) ≤
         (c i) * hausdorffEdist A B := by
       intro i
-      apply ENNReal.le_of_forall_pos_le_add
-      intro ε hε hci
       apply hausdorffEdist_le_of_mem_edist
       · intro x hx
-        have h₁a : ∀ ε : NNReal, 0 < ε → hausdorffEdist (f i '' A) (f i '' B) ≤
-            (c i) * hausdorffEdist A B + ε := by
-          intro ε hε
-          sorry
-
-        have h₁b : ∃ y ∈ f i '' B,
-            edist x y < (c i) * hausdorffEdist A B + ε := by
-          sorry
-        have h₁b' : ∃ y ∈ f i '' B,
-            edist x y ≤ (c i) * hausdorffEdist A B + ε := by
-          rcases h₁b with ⟨y, hy, hxy⟩
-          use y
-          constructor
-          · exact hy
-          · exact le_of_lt hxy
-        exact h₁b'
-      · sorry -- This is same as first part.
+        refine compact_exists_edist_le_of_hausdorffEdist_le hx ?_ ?_ ?_
+        · exact Set.Nonempty.image (f i) hBn
+        · refine lipschitz_restricts_hausdorff_dist ?_ -- this lemma is yet to be proven
+          specialize hSi i
+          have hf : LipschitzOnWith (c i) (f i) A := LipschitzOnWith.mono hSi hAD
+          exact hf
+        · specialize hSi i
+          have h₁' : ∀ B ⊆ D, IsCompact B → IsCompact (f i '' B) :=
+          lipschitz_maps_compact_to_compact D (f i) (c i) hSi
+          specialize h₁' B hBD hBc
+          exact h₁'
+      · sorry
 
     -- we take this outside since we use it twice
     have hci : ∀ i, c i ≤ ⨆ i, c i := by
       intro i
       refine le_ciSup ?_ i
-      simp_all only [Finite.bddAbove_range]
+      refine iSup_coe_lt_top.mp ?_
+
+      sorry
 
     -- supremum of the c i is greater than or equal to each c i, of course
     have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤
