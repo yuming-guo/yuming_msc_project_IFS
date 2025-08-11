@@ -81,7 +81,7 @@ lemma compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpa
 
 /- this is the lemma that, if f is a Lipschitz map on a compact set S, then it maps a compact set A
 to a compact sets f '' A. -/
-lemma lipschitz_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSpace α]
+lemma lipschitzonwith_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSpace α]
     [PseudoEMetricSpace β] (S : Set α) (f : α → β) (K : NNReal) (hf : LipschitzOnWith K f S) :
     ∀ A ⊆ S, IsCompact A → IsCompact (f '' A) := by
   intro A hAD hA
@@ -95,37 +95,15 @@ lemma lipschitz_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSp
 /- this is the lemma that, if f is a Lipschitz map on a set s, then it restricts the Hausdorff
 distance between two sets t and u by a factor of the lipschitz constant of f. -/
 lemma lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D s t : Set α}
-    {f : α → α} {K : NNReal} (hD : IsCompact D) (hs : s ⊆ D) (ht : t ⊆ D)
-    (hf : LipschitzOnWith K f D) :
+    {f : α → α} {K : NNReal} (hs : s ⊆ D) (ht : t ⊆ D) (hsn : Nonempty s) (htn : Nonempty t)
+    (hsc : IsCompact s) (htc : IsCompact t) (hf : LipschitzOnWith K f D) :
     hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
-  apply hausdorffEdist_le_of_mem_edist
-  · intro x₁ hx₁
-    have h₁ : ∀ x ∈ s, ∀ y ∈ t, edist (f x) (f y) ≤ K * edist x y := by
-      intro x hx y hy
-      delta LipschitzOnWith at hf
-      have hxD : x ∈ D := hs hx
-      have hyD : y ∈ D := ht hy
-      specialize hf hxD hyD
-      exact hf
-    have h₂ : ∀ x ∈ s, ∃ y ∈ t, edist x y ≤ hausdorffEdist s t := by
-      intro x hx
-      sorry
-    have h₃ : ∀ x ∈ s, ∃ y ∈ t, edist (f x) (f y) ≤ K * hausdorffEdist s t := by
-      intro x hx
-      obtain ⟨y₁, hy, hxy⟩ := h₂ x hx
-      specialize h₁ x hx y₁ hy
-      specialize h₂ x hx
-      cases' h₂ with y hy hxy
-      obtain ⟨h1, h2⟩ := hy
-      use y
-      use h1
-      have h₃' : K * edist x y ≤ K * hausdorffEdist s t := by
-        have h₃'' : edist x y ≤ hausdorffEdist s t := h2
-        exact mul_le_mul_left' h2 ↑K
-      exact LipschitzOnWith.edist_le_mul_of_le hf (hs hx) (ht h1) h2
-    specialize h₃ x₁
-    sorry
-  · sorry
+  have h : ∀ x ∈ D, ∀ y ∈ D, edist (f x) (f y) ≤ K * edist x y := by
+    intro x hx y hy
+    delta LipschitzOnWith at hf
+    specialize hf hx hy
+    exact hf
+  sorry
 
 
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
@@ -192,7 +170,7 @@ lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
           ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := le_iSup_iff.mpr fun b a => a i
       have h₂ : ∃ y ∈ f i '' B, edist x y ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) :=
           compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hBn) h₁
-          (lipschitz_maps_compact_to_compact D (f i) (c i) (hSi i) B hBD hBc)
+          (lipschitzonwith_maps_compact_to_compact D (f i) (c i) (hSi i) B hBD hBc)
       obtain ⟨y, hy, hxy⟩ := h₂
       have h₃ : y ∈ S B := by
         have h₃' : (f i '' B) ⊆ S B := by
@@ -211,7 +189,7 @@ lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
           ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) := le_iSup_iff.mpr fun b a => a i
       have h₂ : ∃ y ∈ f i '' A, edist x y ≤ ⨆ i, hausdorffEdist (f i '' B) (f i '' A) :=
           compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hAn) h₁
-          (lipschitz_maps_compact_to_compact D (f i) (c i) (hSi i) A hAD hAc)
+          (lipschitzonwith_maps_compact_to_compact D (f i) (c i) (hSi i) A hAD hAc)
       have h₃ : ⨆ i, hausdorffEdist (f i '' B) (f i '' A) =
           ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := by
         have h₃' : ∀ i, hausdorffEdist (f i '' B) (f i '' A) =
@@ -254,30 +232,46 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
       intro i
       apply hausdorffEdist_le_of_mem_edist
       · intro x hx
-        refine compact_exists_edist_le_of_hausdorffEdist_le hx ?_ ?_ ?_
-        · exact Set.Nonempty.image (f i) hBn
-        · refine lipschitz_restricts_hausdorff_dist ?_ -- this lemma is yet to be proven
+        have h₁a : hausdorffEdist (f i '' A) (f i '' B) ≤ ↑(c i) * hausdorffEdist A B := by
           specialize hSi i
-          have hf : LipschitzOnWith (c i) (f i) A := LipschitzOnWith.mono hSi hAD
-          exact hf
-        · specialize hSi i
+          refine lipschitz_restricts_hausdorff_dist hAD hBD (Set.Nonempty.to_subtype hAn)
+              (Set.Nonempty.to_subtype hBn) hAc hBc hSi
+        have h₁b : IsCompact (f i '' B) := by
+          specialize hSi i
           have h₁' : ∀ B ⊆ D, IsCompact B → IsCompact (f i '' B) :=
-          lipschitz_maps_compact_to_compact D (f i) (c i) hSi
+          lipschitzonwith_maps_compact_to_compact D (f i) (c i) hSi
           specialize h₁' B hBD hBc
           exact h₁'
-      · sorry
+        exact compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hBn) h₁a h₁b
+      · intro x hx
+        have h₁a : hausdorffEdist (f i '' B) (f i '' A) ≤ ↑(c i) * hausdorffEdist B A := by
+          specialize hSi i
+          exact lipschitz_restricts_hausdorff_dist hBD hAD (Set.Nonempty.to_subtype hBn)
+              (Set.Nonempty.to_subtype hAn) hBc hAc hSi
+        have h₁b : IsCompact (f i '' A) := by
+          specialize hSi i
+          have h₁' : ∀ A ⊆ D, IsCompact A → IsCompact (f i '' A) :=
+          lipschitzonwith_maps_compact_to_compact D (f i) (c i) hSi
+          specialize h₁' A hAD hAc
+          exact h₁'
+        have h₁c : ↑(c i) * hausdorffEdist A B = ↑(c i) * hausdorffEdist B A := by
+          have h₁c' : hausdorffEdist A B = hausdorffEdist B A := hausdorffEdist_comm
+          rw [h₁c']
+        have h₁a' : hausdorffEdist (f i '' B) (f i '' A) ≤ ↑(c i) * hausdorffEdist A B := by
+          rw [h₁c]
+          exact h₁a
+        exact compact_exists_edist_le_of_hausdorffEdist_le hx (Set.Nonempty.image (f i) hAn) h₁a' h₁b
 
     -- we take this outside since we use it twice
     have hci : ∀ i, c i ≤ ⨆ i, c i := by
       intro i
       refine le_ciSup ?_ i
-      refine iSup_coe_lt_top.mp ?_
-
-      sorry
+      use 1
+      rw [mem_upperBounds]
+      aesop (add safe apply le_of_lt)
 
     -- supremum of the c i is greater than or equal to each c i, of course
-    have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤
-        (⨆ i, c i) * hausdorffEdist A B := by
+    have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by
       intro i
       have h₁b₂ : hausdorffEdist A B ≤ hausdorffEdist A B := le_rfl -- this is a bit sus
       refine mul_le_mul ?_ h₁b₂ ?_ ?_
@@ -295,5 +289,13 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
     exact le_trans h₁ h₃
   exact le_trans h h'
 
+
+theorem attractor_uniq (hD : IsCompact D)
+    (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
+    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
+    ∃! A ⊆ D, S A = A := by
+  have h1 : ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D → hausdorffEdist (S A) (S B)
+      ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := dist_union_le_sup_ind_dist c hD hS hSi
+  sorry
 
 end attractor_uniq -- close the namespace
