@@ -32,6 +32,9 @@ auxiliary lemmas.
   family of contraction mappings `f i`, then the Hausdorff distance between `S(A)` and `S(B)` is
   bounded by the supremum of the individual lipschitz constants multiplied by the Hausdorff distance
   between `A` and `B`.
+* `attractor_uniq`: The main theorem that states the uniqueness of the attractor of an IFS. It
+  states that there exists a unique set `A` such that `S(A) = A`, where `S` is the union of
+  the images of sets under a family of contraction mappings `f i`.
 
 # References
 * [1] Kenneth Falconer, "Fractal Geometry: Mathematical Foundations and Applications", Wiley, 2003.
@@ -268,7 +271,14 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
       refine le_ciSup ?_ i
       use 1
       rw [mem_upperBounds]
-      aesop (add safe apply le_of_lt)
+
+      -- this aesop is by BM
+      intro x a
+      simp_all only [Set.mem_range]
+      obtain ⟨w, h_1⟩ := a
+      subst h_1
+      apply le_of_lt
+      simp_all only
 
     -- supremum of the c i is greater than or equal to each c i, of course
     have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by
@@ -296,6 +306,20 @@ theorem attractor_uniq (hD : IsCompact D)
     ∃! A ⊆ D, S A = A := by
   have h1 : ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D → hausdorffEdist (S A) (S B)
       ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := dist_union_le_sup_ind_dist c hD hS hSi
+
+  let f' : ι → D → D := fun i x => ⟨f i x, by
+    -- need to show that f i x ∈ D
+    sorry
+  ⟩
+
+  let S' : Set D → Set D := fun A => S A, by
+    sorry
+
+
+
+  have h2 : ContractingWith (⨆ i, c i) S' := by
+    -- need to show that S' is contracting with the c i
+    sorry
   sorry
 
 end attractor_uniq -- close the namespace
