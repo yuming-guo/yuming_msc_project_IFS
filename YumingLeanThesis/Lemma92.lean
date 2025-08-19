@@ -48,7 +48,8 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
 
     exact h₁a
 
-  have h₂ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n
+  have h₂ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
+    sorry
   sorry
 
 end lemma92
