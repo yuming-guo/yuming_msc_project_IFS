@@ -43,7 +43,7 @@ auxiliary lemmas.
 
 open Bornology Metric ENNReal EMetric IsCompact
 
-namespace attractor_uniq -- sets up the namespace
+namespace theorem_91 -- sets up the namespace
 
 
 /- This is the lemma that, in ENNReals, if b is non-infinity and a > 0, then b ≤ c implies b < c + a.
@@ -101,18 +101,68 @@ lemma lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D 
     {f : α → α} {K : NNReal} (hs : s ⊆ D) (ht : t ⊆ D) (hsn : Nonempty s) (htn : Nonempty t)
     (hsc : IsCompact s) (htc : IsCompact t) (hf : LipschitzOnWith K f D) :
     hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
+  -- first use directly lipschitz
   have h : ∀ x ∈ D, ∀ y ∈ D, edist (f x) (f y) ≤ K * edist x y := by
     intro x hx y hy
     delta LipschitzOnWith at hf
     specialize hf hx hy
     exact hf
-  sorry
+
+  apply hausdorffEdist_le_of_mem_edist
+  · have h₁ : ∀ m ∈ s, ∃ n ∈ t, edist (f m) (f n) ≤ K * hausdorffEdist s t := by
+      intro m hm
+      have h₁' : ∀ m ∈ s, ∃ n ∈ t, edist m n ≤ hausdorffEdist s t := by
+        intro m hm
+        refine compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
+            (Preorder.le_refl (hausdorffEdist s t)) htc
+      specialize h₁' m hm
+      cases' h₁' with n hn
+      have hmD : m ∈ D := hs hm
+      obtain ⟨hnt, hmn⟩ := hn
+      have hnD : n ∈ D := ht hnt
+      specialize h m hmD n hnD
+      use n
+      constructor
+      · exact hnt
+      · exact LipschitzOnWith.edist_le_mul_of_le hf (hs hm) (ht hnt) hmn
+
+    -- this bit was an aesop
+    intro x a
+    simp_all only [nonempty_subtype, Set.mem_image, exists_exists_and_eq_and]
+    obtain ⟨w, h_1⟩ := hsn
+    obtain ⟨w_1, h_2⟩ := htn
+    obtain ⟨w_2, h_3⟩ := a
+    obtain ⟨left, right⟩ := h_3
+    subst right
+    simp_all only
+
+  · have h₁ : ∀ m ∈ t, ∃ n ∈ s, edist (f m) (f n) ≤ K * hausdorffEdist t s := by
+      intro m hm
+      have h₁' : ∀ m ∈ t, ∃ n ∈ s, edist m n ≤ hausdorffEdist t s := by
+        intro m hm
+        refine compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
+            (Preorder.le_refl (hausdorffEdist t s)) hsc
+      specialize h₁' m hm
+      cases' h₁' with n hn
+      have hmD : m ∈ D := ht hm
+      obtain ⟨hnt, hmn⟩ := hn
+      have hnD : n ∈ D := hs hnt
+      specialize h m hmD n hnD
+      use n
+      constructor
+      · exact hnt
+      · exact LipschitzOnWith.edist_le_mul_of_le hf (ht hm) (hs hnt) hmn
+
+    have hst : hausdorffEdist s t = hausdorffEdist t s := hausdorffEdist_comm
+    aesop -- same aesop as above, not expanded here
+
+
 
 
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
-variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} [Fintype ι] (c : ι → NNReal)
+variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal)
   (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)} (ε : ENNReal)
   (x : EuclideanSpace ℝ (Fin n)) {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
@@ -302,7 +352,7 @@ lemma union_of_lipschitz_contracts (hD : IsCompact D)
 
 theorem attractor_uniq (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
-    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
+    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) [Fintype ι] :
     ∃! A ⊆ D, S A = A := by
   have h1 : ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D → hausdorffEdist (S A) (S B)
       ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := dist_union_le_sup_ind_dist c hD hS hSi
@@ -322,4 +372,4 @@ theorem attractor_uniq (hD : IsCompact D)
     sorry
   sorry
 
-end attractor_uniq -- close the namespace
+end theorem_91 -- close the namespace
