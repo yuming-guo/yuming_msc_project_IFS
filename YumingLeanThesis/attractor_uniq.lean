@@ -15,23 +15,35 @@ auxiliary lemmas.
 # Main Results
 * `lt_add_of_le_of_pos_ENNReal`: The ENNReal version of the lemma `lt_add_of_le_of_pos`. If `b` is
   non-infinity and `a > 0`, then `b ≤ c` implies `b < c + a`.
+
 * `LipschitzOnWith_Weaken`: The LipschitzOnWith version of the lemma `LipschitzWith.weaken`. If `f`
   is LipschitzOnWith with constant `K` on a set `s`, and `K ≤ K'`, then `f` is LipschitzOnWith with
   constant `K'` on the same set `s`.
+
 * `compact_exists_edist_le_of_hausdorffEdist_le`: If `x` is in a set `s`, and `t` is a nonempty
   compact set, and the Hausdorff distance between `s` and `t` is bounded by `r`, then there exists
   a point `y` in `t` such that the distance from `x` to `y` is at most `r`. This is an extention of
   the `exists_edist_lt_of_hausdorffEdist_lt` lemma, which proves only the less than case, without
   requiring compactness of `t`.
+
+* `lipschitzonwith_maps_compact_to_compact`: If `f` is a Lipschitz map on a compact set `S`, then it
+  maps a compact set `A` to a compact set `f '' A`.
+
+* `lipschitz_restricts_hausdorff_dist`: If `f` is a Lipschitz map on a set `s`, then it restricts
+  the Hausdorff distance between two sets `t` and `u` by a factor of the Lipschitz constant of `f`.
+
 * `contr_maps_bounded_to_bounded`: If `f` is a contraction mapping, then it maps bounded sets to
   bounded sets.
+
 * `dist_union_le_max_dist_ind`: Let `S` be the union of the images of sets `A` and `B` under a
   family of contraction mappings `f i`, then the Hausdorff distance between `S(A)` and `S(B)` is
   bounded by the maximum Hausdorff distance between the images of `A` and `B` under each `f i`.
+
 * `union_of_lipschitz_contracts`: If `S` is the union of the images of sets `A` and `B` under a
   family of contraction mappings `f i`, then the Hausdorff distance between `S(A)` and `S(B)` is
   bounded by the supremum of the individual lipschitz constants multiplied by the Hausdorff distance
   between `A` and `B`.
+
 * `attractor_uniq`: The main theorem that states the uniqueness of the attractor of an IFS. It
   states that there exists a unique set `A` such that `S(A) = A`, where `S` is the union of
   the images of sets under a family of contraction mappings `f i`.
@@ -41,6 +53,7 @@ auxiliary lemmas.
 -/
 
 
+
 open Bornology Metric ENNReal EMetric IsCompact
 
 namespace theorem_91 -- sets up the namespace
@@ -48,7 +61,7 @@ namespace theorem_91 -- sets up the namespace
 
 /- This is the lemma that, in ENNReals, if b is non-infinity and a > 0, then b ≤ c implies b < c + a.
 To be added into mathlib. -/
-lemma ENNReal_lt_add_of_le_of_pos {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠ ⊤) (hbc : b ≤ c) :
+theorem ENNReal_lt_add_of_le_of_pos {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠ ⊤) (hbc : b ≤ c) :
     b < c + a := by
   obtain rfl | hbc := eq_or_lt_of_le hbc
   · exact lt_add_right hb ha
@@ -56,7 +69,7 @@ lemma ENNReal_lt_add_of_le_of_pos {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠ �
 
 
 -- here we prove the LipschitzWith.weaken lemma, except for LipschitzOnWith
-lemma LipschitzOnWith_Weaken {α : Type} {β : Type} [PseudoEMetricSpace α] [PseudoEMetricSpace β]
+theorem LipschitzOnWith_Weaken {α : Type} {β : Type} [PseudoEMetricSpace α] [PseudoEMetricSpace β]
     {s : Set α} {K K' : NNReal} {f : α → β} (hf : LipschitzOnWith K f s) (hK : K ≤ K') :
       LipschitzOnWith K' f s := by
   delta LipschitzOnWith at *
@@ -69,7 +82,7 @@ lemma LipschitzOnWith_Weaken {α : Type} {β : Type} [PseudoEMetricSpace α] [Ps
 between s and t is bounded by r, then there exists a point y in t such that the distance from x to y
 is at most r. This is an extention of the `exists_edist_lt_of_hausdorffEdist_lt` lemma, which proves
 only the less than case, without requiring compactness of t. -/
-lemma compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpace α]
+theorem compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpace α]
     {x : α} {s t : Set α} {r : ℝ≥0∞} (hx : x ∈ s) (ht : t.Nonempty)
     (H : hausdorffEdist s t ≤ r) (htc : IsCompact t) : ∃ y ∈ t, edist x y ≤ r := by
     have h₁ : infEdist x t ≤ r := by
@@ -84,7 +97,7 @@ lemma compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpa
 
 /- this is the lemma that, if f is a Lipschitz map on a compact set S, then it maps a compact set A
 to a compact sets f '' A. -/
-lemma lipschitzonwith_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSpace α]
+theorem lipschitzonwith_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMetricSpace α]
     [PseudoEMetricSpace β] (S : Set α) (f : α → β) (K : NNReal) (hf : LipschitzOnWith K f S) :
     ∀ A ⊆ S, IsCompact A → IsCompact (f '' A) := by
   intro A hAD hA
@@ -97,7 +110,7 @@ lemma lipschitzonwith_maps_compact_to_compact {α : Type} {β : Type} [PseudoEMe
 
 /- this is the lemma that, if f is a Lipschitz map on a set s, then it restricts the Hausdorff
 distance between two sets t and u by a factor of the lipschitz constant of f. -/
-lemma lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D s t : Set α}
+theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D s t : Set α}
     {f : α → α} {K : NNReal} (hs : s ⊆ D) (ht : t ⊆ D) (hsn : Nonempty s) (htn : Nonempty t)
     (hsc : IsCompact s) (htc : IsCompact t) (hf : LipschitzOnWith K f D) :
     hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
@@ -168,7 +181,7 @@ variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι �
 
 
 -- this is the lemma that contractions map bounded sets to bounded sets
-lemma contr_maps_bounded_to_bounded (hc : ∀ i, c i < 1)
+theorem contr_maps_bounded_to_bounded (hc : ∀ i, c i < 1)
     (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) :
     ∀ A ⊆ D, IsBounded A → IsBounded (f i '' A) := by
   intro A hAD hA
@@ -206,7 +219,7 @@ lemma contr_maps_bounded_to_bounded (hc : ∀ i, c i < 1)
 
 /- The lemma that d(S(A), S(B) ≤ max_{1 ≤ i ≤ m} d(S_i(A), S_i(B).
 Let it such that if x is in D, then S_i(x) is in D; Define S(A) to be the union of all S_i(A)s. -/
-lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
+theorem dist_union_le_sup_ind_dist (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
     ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D →
@@ -265,7 +278,7 @@ lemma dist_union_le_sup_ind_dist (hD : IsCompact D)
 
 -- now we move on to proving [1][p.125, equation 9.5], i.e. the union of the contractions has
 -- lipschitz constant at most the supremum of the individual lipschitz constants
-lemma union_of_lipschitz_contracts (hD : IsCompact D)
+theorem union_of_lipschitz_contracts (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
     ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D →
