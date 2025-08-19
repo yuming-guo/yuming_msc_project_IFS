@@ -350,27 +350,35 @@ theorem union_of_lipschitz_contracts (hD : IsCompact D)
     exact le_trans h₁ h₃
   exact le_trans h h'
 
+open TopologicalSpace
 
 theorem attractor_uniq (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) [Fintype ι] :
     ∃! A ⊆ D, S A = A := by
-  have h1 : ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D → hausdorffEdist (S A) (S B)
-      ≤ ⨆ i, hausdorffEdist (f i '' A) (f i '' B) := dist_union_le_sup_ind_dist c hD hS hSi
-
-  let f' : ι → D → D := fun i x => ⟨f i x, by
-    -- need to show that f i x ∈ D
+  have (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
+      (S A).Nonempty := by sorry
+  have (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
+      IsCompact (S A) := by sorry
+  let S' : NonemptyCompacts (EuclideanSpace ℝ (Fin n)) → NonemptyCompacts (EuclideanSpace ℝ (Fin n)) :=
+    fun A ↦
+    { carrier := S A,
+      isCompact' := sorry
+      nonempty' := sorry }
+  let s : Set (NonemptyCompacts (EuclideanSpace ℝ (Fin n))) := { A | A.carrier ⊆ D }
+  have s_complete : IsComplete s := by sorry
+  have s_mapsTo : Set.MapsTo S' s s := by
     sorry
-  ⟩
+  have s_contracts : ContractingWith (⨆ i, c i) (Set.MapsTo.restrict S' s s s_mapsTo) := by
+    refine ⟨?_, ?_⟩
+    · sorry
+    · intro ⟨A, hA⟩ ⟨B, hB⟩
+      simp only [Set.MapsTo.restrict, Subtype.map, Subtype.edist_mk_mk, ge_iff_le]
+      sorry
+  let A := ContractingWith.efixedPoint' S' s_complete s_mapsTo s_contracts
 
-  let S' : Set D → Set D := fun A => S A, by
-    sorry
-
-
-
-  have h2 : ContractingWith (⨆ i, c i) S' := by
-    -- need to show that S' is contracting with the c i
-    sorry
   sorry
+
+
 
 end theorem_91 -- close the namespace

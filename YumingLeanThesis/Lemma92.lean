@@ -23,11 +23,14 @@ namespace lemma92 -- sets up the namespace
 variable {n : ℕ} {ι : Type*} (x : EuclideanSpace ℝ (Fin n))
   {V : ι → Set (EuclideanSpace ℝ (Fin n))}
 
+-- EuclideanSpace.volume_ball
+
 theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disjoint (V i) (V j))
     (hV₁ : ∀ i, ∃ x₁ ∈ V i, ball x₁ (a₁ * r) ⊆ V i)
     (hV₂ : ∀ i, ∃ x₂ : EuclideanSpace ℝ (Fin n), ∀ y₂, y₂ ∈ V i → y₂ ∈ ball x₂ (a₂ * r)) :
     {i : ι | (ball x r ∩ closure (V i)).Nonempty}.encard.toENNReal ≤ ((1 + 2 * a₂) ^ n / a₁ ^ n) := by
-
+  set Q : Set ι :=  {i : ι | (ball x r ∩ closure (V i)).Nonempty}
+  set q : ENat := Q.encard
   have h₁ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → closure (V i) ⊆ ball x ((1 + 2 * a₂) * r) := by
     intro i hVi
     have h₁a : ∀ p ∈ closure (V i), edist p x < (1 + 2 * a₂) * r := by
@@ -49,6 +52,9 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
     exact h₁a
 
   have h₂ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
+    sorry
+  have h₃ : ∑' i : Q, volume (closure (V i)) ≤ volume (ball x ((1 + 2 * a₂) * r)) := by
+    -- MeasureTheory.tsum_meas_le_meas_iUnion_of_disjoint
     sorry
   sorry
 
