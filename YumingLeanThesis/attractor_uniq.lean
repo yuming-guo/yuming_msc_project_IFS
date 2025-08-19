@@ -114,12 +114,6 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
     {f : α → α} {K : NNReal} (hs : s ⊆ D) (ht : t ⊆ D) (hsn : Nonempty s) (htn : Nonempty t)
     (hsc : IsCompact s) (htc : IsCompact t) (hf : LipschitzOnWith K f D) :
     hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
-  -- first use directly lipschitz
-  have h : ∀ x ∈ D, ∀ y ∈ D, edist (f x) (f y) ≤ K * edist x y := by
-    intro x hx y hy
-    delta LipschitzOnWith at hf
-    specialize hf hx hy
-    exact hf
 
   apply hausdorffEdist_le_of_mem_edist
   · have h₁ : ∀ m ∈ s, ∃ n ∈ t, edist (f m) (f n) ≤ K * hausdorffEdist s t := by
@@ -130,10 +124,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
             (Preorder.le_refl (hausdorffEdist s t)) htc
       specialize h₁' m hm
       cases' h₁' with n hn
-      have hmD : m ∈ D := hs hm
       obtain ⟨hnt, hmn⟩ := hn
-      have hnD : n ∈ D := ht hnt
-      specialize h m hmD n hnD
       use n
       constructor
       · exact hnt
@@ -157,10 +148,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
             (Preorder.le_refl (hausdorffEdist t s)) hsc
       specialize h₁' m hm
       cases' h₁' with n hn
-      have hmD : m ∈ D := ht hm
       obtain ⟨hnt, hmn⟩ := hn
-      have hnD : n ∈ D := hs hnt
-      specialize h m hmD n hnD
       use n
       constructor
       · exact hnt
