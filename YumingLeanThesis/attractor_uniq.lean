@@ -120,7 +120,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
       intro m hm
       have h₁' : ∀ m ∈ s, ∃ n ∈ t, edist m n ≤ hausdorffEdist s t := by
         intro m hm
-        refine compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
+        exact compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
             (Preorder.le_refl (hausdorffEdist s t)) htc
       specialize h₁' m hm
       cases' h₁' with n hn
@@ -144,7 +144,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
       intro m hm
       have h₁' : ∀ m ∈ t, ∃ n ∈ s, edist m n ≤ hausdorffEdist t s := by
         intro m hm
-        refine compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
+        exact compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
             (Preorder.le_refl (hausdorffEdist t s)) hsc
       specialize h₁' m hm
       cases' h₁' with n hn
