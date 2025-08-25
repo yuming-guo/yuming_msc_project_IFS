@@ -163,7 +163,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
-variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal)
+variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal) [Nonempty ι]
   (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)} (ε : ENNReal)
   (x : EuclideanSpace ℝ (Fin n)) {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
@@ -350,21 +350,47 @@ theorem union_of_lipschitz_contracts (hD : IsCompact D)
     exact le_trans h₁ h₃
   exact le_trans h h'
 
+
 open TopologicalSpace
 
-theorem attractor_uniq (hD : IsCompact D)
+theorem attractor_uniq [Fintype ι] (hD : IsCompact D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
-    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) [Fintype ι] :
+    (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) :
     ∃! A ⊆ D, S A = A := by
-  have (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
-      (S A).Nonempty := by sorry
-  have (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
-      IsCompact (S A) := by sorry
+  -- we first show that S(A) is nonempty
+  have s_nonempty (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
+      (S A).Nonempty := by
+    -- some f_i(A) is nonempty, so the whole union is
+    have fi_nonempty : ∃ i, (f i '' A).Nonempty := by
+      simp only [Set.image_nonempty, exists_const]
+      exact hA
+    cases' fi_nonempty with i hi
+    rw [Set.nonempty_def] at hi
+    have cover_component : ∀ i, (f i '' A) ⊆ S A := by
+      rw [hS A hA']
+      intro i
+      exact Set.subset_iUnion_of_subset i fun ⦃a⦄ a => a
+    specialize cover_component i
+    exact Set.Nonempty.mono cover_component hi
+
+  -- then we show that S(A) is compact
+  have s_compact (A : Set (EuclideanSpace ℝ (Fin n))) (hAD : A ⊆ D) (hA : A.Nonempty) (hA' : IsCompact A) :
+      IsCompact (S A) := by
+    -- each individual f_i(A) is compact, by lipschitzonwith_maps_compact_to_compact
+    have fi_compact : ∀ i, IsCompact (f i '' A) := by
+      intro i
+      exact lipschitzonwith_maps_compact_to_compact D (f i) (c i) (hSi i) A hAD hA'
+    rw [hS A hA']
+    -- finite union of compact sets is compact
+    refine isCompact_iUnion fi_compact
+
   let S' : NonemptyCompacts (EuclideanSpace ℝ (Fin n)) → NonemptyCompacts (EuclideanSpace ℝ (Fin n)) :=
     fun A ↦
     { carrier := S A,
-      isCompact' := sorry
-      nonempty' := sorry }
+      isCompact' :=
+        sorry
+      nonempty' :=
+        sorry }
   let s : Set (NonemptyCompacts (EuclideanSpace ℝ (Fin n))) := { A | A.carrier ⊆ D }
   have s_complete : IsComplete s := by sorry
   have s_mapsTo : Set.MapsTo S' s s := by

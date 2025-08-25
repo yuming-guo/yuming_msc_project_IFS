@@ -123,7 +123,8 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
 
     exact h₁a
 
-  have h₂ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
+  have h₂ : ∀ i ∈ Q, volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
+    intro i hi
     sorry
   have h₃ : ∑' i : Q, volume (closure (V i)) ≤ volume (ball x ((1 + 2 * a₂) * r)) := by
     -- MeasureTheory.tsum_meas_le_meas_iUnion_of_disjoint
