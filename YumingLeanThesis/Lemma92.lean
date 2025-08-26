@@ -28,9 +28,16 @@ lemma why_do_i_have_to_prove_this {a b c : ENNReal} (hac : a ≤ c) (hbc : b ≤
 
 lemma why_do_i_have_to_prove_this' {a b : ENNReal} : 2 * a * b = 2 * (a * b) := mul_assoc 2 a b
 
-lemma number_3 {a b c d: ENNReal} (hab : a = b) (hcd : c < d) (ha : a ≠ ⊤) (hc : c ≠ ⊤) :
+lemma special_left_cancelativity {a c : ENNReal} {b d: NNReal} (ha : a ≠ ⊤) (hc : c ≠ ⊤) (hab : a = b) (hcd : c < d) :
     a + c < b + d := by
-  sorry
+  rw [<-hab]
+  have ha' : a = a.toNNReal := Eq.symm (coe_toNNReal ha)
+  have hc' : c = c.toNNReal := Eq.symm (coe_toNNReal hc)
+  rw [ha', hc']
+  norm_cast
+  simp only [add_lt_add_iff_left, gt_iff_lt]
+  exact toNNReal_lt_of_lt_coe hcd
+
 
 variable {n : ℕ} {ι : Type*} (x : EuclideanSpace ℝ (Fin n))
   {V : ι → Set (EuclideanSpace ℝ (Fin n))}
@@ -121,22 +128,26 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
         · obtain ⟨_, hyb⟩ := hy
           exact hyb
 
+      -- finally apply triangle inequality
       have hpxy : ∀ (y : EuclideanSpace ℝ (Fin n)), edist p x ≤ edist p y + edist y x := by
         intro y
         simp only [edist_triangle]
 
+      -- we know the intersection between closure(V i) and B is nonempty, so we extract the point
       rw [Set.nonempty_def] at hVi
       obtain ⟨y, hyVb⟩ := hVi
       specialize hy₁ y hyVb
       specialize hpxy y
       obtain ⟨h_dpy, h_dyx⟩ := hy₁
       rw [le_iff_lt_or_eq] at h_dpy
+      -- assemble the strict inequality and the less than or equal to together
       have h_sum: edist p y + edist y x < (1 + 2 * a₂) * r := by
         ring_nf
         rw [mul_comm, <- mul_assoc]
+        -- here i found it easier to break down by equality between d(p,y) and upper bound 2a₂r
         cases' h_dpy with h_dpy₁ h_dpy₂
         · exact ENNReal.add_lt_add h_dpy₁ h_dyx
-        · exact number_3 h_dpy₂ h_dyx (edist_ne_top p y) (edist_ne_top y x)
+        · exact special_left_cancelativity (edist_ne_top p y) (edist_ne_top y x) h_dpy₂ h_dyx
 
       exact lt_of_le_of_lt hpxy h_sum
     exact h₁a
