@@ -20,14 +20,17 @@ open Bornology ENNReal EMetric IsCompact Topology MeasureTheory
 
 namespace lemma92 -- sets up the namespace
 
-lemma why_do_i_have_to_prove_this {a b c : ENNReal} (hac : a ≤ c) (hbc : b < c) : a + b ≤ 2 * c := by
-  have hbc' : b ≤ c := le_of_lt hbc
-  have h₁ : a + b ≤ c + c := add_le_add hac hbc'
+lemma why_do_i_have_to_prove_this {a b c : ENNReal} (hac : a ≤ c) (hbc : b ≤ c) : a + b ≤ 2 * c := by
+  have h₁ : a + b ≤ c + c := add_le_add hac hbc
   have h₂ : c + c = 2 * c := Eq.symm (two_mul c)
   rw [h₂] at h₁
   exact h₁
 
 lemma why_do_i_have_to_prove_this' {a b : ENNReal} : 2 * a * b = 2 * (a * b) := mul_assoc 2 a b
+
+lemma number_3 {a b c d: ENNReal} (hab : a = b) (hcd : c < d) (ha : a ≠ ⊤) (hc : c ≠ ⊤) :
+    a + c < b + d := by
+  sorry
 
 variable {n : ℕ} {ι : Type*} (x : EuclideanSpace ℝ (Fin n))
   {V : ι → Set (EuclideanSpace ℝ (Fin n))}
@@ -48,12 +51,14 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
     norm_cast
 
   -- first line of the informal proof
-  have h₁ : ∀ i, closure (V i) ∩ (ball x r) ≠ ∅ → closure (V i) ⊆ ball x ((1 + 2 * a₂) * r) := by
+  have h₁ : ∀ i, (closure (V i) ∩ (ball x r)).Nonempty → closure (V i) ⊆ ball x ((1 + 2 * a₂) * r) := by
     intro i hVi
+    -- here: x is the centre of B (see informal proof), p is any point in the closure of V i, and
+    -- y is a point in closure(V i) ∩ B (which is nonempty by assumption)
     have h₁a : ∀ p ∈ closure (V i), edist p x < (1 + 2 * a₂) * r := by
       intro p hp
       -- dissect the distance into two parts using an intermediate point y
-      have hy₁ : ∀ y ∈ V i ∩ (ball x r), edist p y ≤ (2 * a₂) * r ∧ edist y x < r := by
+      have hy₁ : ∀ y ∈ closure (V i) ∩ (ball x r), edist p y ≤ (2 * a₂) * r ∧ edist y x < r := by
         intro y hy
         constructor
 
@@ -62,42 +67,44 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
           -- we obtain w, the centre of the external ball of V i
           cases' hV₂ with w hyw
 
+          -- rewrite the assumption hyw to a more convenient form
+          have hyw' : V i ⊆ ball w (a₂ * r) := hyw
+          -- since V i is contained by the external ball, this is preserved by closure
+          have h_closed : closure (V i) ⊆ closure (ball w (a₂ * r)) := closure_mono hyw'
           -- We pvove p is in the closed ball with center w and radius a₂r
+          have h_closedball : closure (ball w (a₂ * r)) = closedBall w (a₂ * r) := by
+
+            -- firstly, finite radius means closed balls in EMetric and Metric are equivalent
+            have h_closeball_equiv : closedBall w (a₂ * r) =
+                Metric.closedBall w (a₂ * r) := Metric.emetric_closedBall_nnreal
+
+            -- finite radius also means open balls in EMetric and Metric are equivalent
+            have h_ball_equiv : ball w (a₂ * r) = Metric.ball w (a₂ * r) := Metric.emetric_ball_nnreal
+            -- therefore the closures of open balls in EMetric and Metric are also equivalent
+            have h_closure_ball_equiv : closure (ball w (a₂ * r)) =
+                closure (Metric.ball w (a₂ * r)) := by rw [h_ball_equiv]
+
+            -- finally, use the fact that closure of a Metric ball is the closed ball
+            have h_metric_closed_ball : closure (Metric.ball w (a₂ * r)) =
+                Metric.closedBall w (a₂ * r) := closure_ball w h_coeff
+
+            rw [h_closeball_equiv, h_closure_ball_equiv]
+            exact h_metric_closed_ball
+
           have hpw : edist p w ≤ a₂ * r := by
-            have hyw' : V i ⊆ ball w (a₂ * r) := hyw
-            -- since V i is contained by the external ball, this is preserved by closure
-            have h_closed : closure (V i) ⊆ closure (ball w (a₂ * r)) := closure_mono hyw'
-
             -- we prove that in EMetricSpace, the closure of the ball is the closed ball
-            have h_closedball : closure (ball w (a₂ * r)) = closedBall w (a₂ * r) := by
-
-              -- firstly, finite radius means closed balls in EMetric and Metric are equivalent
-              have h_closeball_equiv : closedBall w (a₂ * r) = Metric.closedBall w (a₂ * r) := by
-                exact Metric.emetric_closedBall_nnreal
-
-              -- finite radius also means open balls in EMetric and Metric are equivalent
-              have h_ball_equiv : ball w (a₂ * r) = Metric.ball w (a₂ * r) := Metric.emetric_ball_nnreal
-              -- therefore the closures of open balls in EMetric and Metric are also equivalent
-              have h_closure_ball_equiv : closure (ball w (a₂ * r)) =
-                  closure (Metric.ball w (a₂ * r)) := by rw [h_ball_equiv]
-
-              -- finally, use the fact that closure of a Metric ball is the closed ball
-              have h_metric_closed_ball : closure (Metric.ball w (a₂ * r)) =
-                  Metric.closedBall w (a₂ * r) := by
-                exact closure_ball w h_coeff
-
-              rw [h_closeball_equiv, h_closure_ball_equiv]
-              exact h_metric_closed_ball
             rw [h_closedball] at h_closed
             exact h_closed hp
 
-          -- now we know that y is in the open ball with center w and radius a₂r
-          have hwy : edist w y < a₂ * r := by
-            obtain ⟨hyVi, _⟩ := hy
-            specialize hyw y hyVi
-            simp [ball] at hyw
-            rw [edist_comm] at hyw
-            exact hyw
+          -- now we know that y is in the closed ball with center w and radius a₂r
+          have hwy : edist w y ≤ a₂ * r := by
+            have y_closed_ball : y ∈ closedBall w (a₂ * r) := by
+              obtain ⟨hyc, _⟩ := hy
+              rw [h_closedball] at h_closed
+              exact h_closed hyc
+            delta closedBall at y_closed_ball
+            rw [edist_comm]
+            exact y_closed_ball
 
           -- now we sum then together and apply the triangle inequality
           have hpwy : edist p w + edist w y ≤ 2 * (a₂ * r) := by
@@ -118,9 +125,20 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
         intro y
         simp only [edist_triangle]
 
+      rw [Set.nonempty_def] at hVi
+      obtain ⟨y, hyVb⟩ := hVi
+      specialize hy₁ y hyVb
+      specialize hpxy y
+      obtain ⟨h_dpy, h_dyx⟩ := hy₁
+      rw [le_iff_lt_or_eq] at h_dpy
+      have h_sum: edist p y + edist y x < (1 + 2 * a₂) * r := by
+        ring_nf
+        rw [mul_comm, <- mul_assoc]
+        cases' h_dpy with h_dpy₁ h_dpy₂
+        · exact ENNReal.add_lt_add h_dpy₁ h_dyx
+        · exact number_3 h_dpy₂ h_dyx (edist_ne_top p y) (edist_ne_top y x)
 
-      sorry
-
+      exact lt_of_le_of_lt hpxy h_sum
     exact h₁a
 
   have h₂ : ∀ i ∈ Q, volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
