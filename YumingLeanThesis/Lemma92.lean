@@ -20,13 +20,6 @@ open Bornology ENNReal EMetric IsCompact Topology MeasureTheory
 
 namespace lemma92 -- sets up the namespace
 
-lemma why_do_i_have_to_prove_this {a b c : ENNReal} (hac : a ≤ c) (hbc : b ≤ c) : a + b ≤ 2 * c := by
-  have h₁ : a + b ≤ c + c := add_le_add hac hbc
-  have h₂ : c + c = 2 * c := Eq.symm (two_mul c)
-  rw [h₂] at h₁
-  exact h₁
-
-lemma why_do_i_have_to_prove_this' {a b : ENNReal} : 2 * a * b = 2 * (a * b) := mul_assoc 2 a b
 
 lemma special_left_cancelativity {a c : ENNReal} {b d: NNReal} (ha : a ≠ ⊤) (hc : c ≠ ⊤) (hab : a = b) (hcd : c < d) :
     a + c < b + d := by
@@ -115,11 +108,15 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
 
           -- now we sum then together and apply the triangle inequality
           have hpwy : edist p w + edist w y ≤ 2 * (a₂ * r) := by
-            exact why_do_i_have_to_prove_this hpw hwy
+            calc
+              edist p w + edist w y ≤ a₂ * r + a₂ * r := add_le_add hpw hwy
+              _ ≤ 2 * (a₂ * r) := by
+                norm_cast
+                rw [Eq.symm (two_mul (a₂ * r))]
           have : 2 * a₂ * r = 2 * (a₂ * r) := by
             rw [mul_assoc]
           have hpwy' : edist p w + edist w y ≤ (2 * a₂) * r := by
-            rw [<- why_do_i_have_to_prove_this'] at hpwy
+            rw [mul_assoc]
             exact hpwy
           have h_triangle : edist p y ≤ edist p w + edist w y := by simp only [edist_triangle]
           exact le_trans h_triangle hpwy'
@@ -152,9 +149,25 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
       exact lt_of_le_of_lt hpxy h_sum
     exact h₁a
 
-  have h₂ : ∀ i ∈ Q, volume (closure (V i) ∩ (ball x r)) ≤ (a₁ * r) ^ n := by
+
+  have h₂ : ∀ i ∈ Q, volume (closure (V i) ∩ (ball x r)) ≤ MeasureTheory.volume (ball x r) := by
     intro i hi
+
+    -- for this specific i, we obtain both the interior and exterior balls
+    specialize hV₁ i
+    cases' hV₁ with z₁ hz₁
+    specialize hV₂ i
+    cases' hV₂ with z₂ hz₂
+
+    obtain ⟨z₁_center, z₁_contain⟩ := hz₁
+    have hz₂' : closure (V i) ⊆ ball z₂ (a₂ * r) := by
+      sorry
+    have h_inter : V i ⊆ closure (V i) := subset_closure
+    have h₂' : ball z₁ (a₁ * r) ⊆ ball z₂ (a₂ * r) := by
+      have h₂'' : ball z₁ (a₁ * r) ⊆ closure (V i) := subset_trans z₁_contain h_inter
+      exact subset_trans h₂'' hz₂'
     sorry
+
   have h₃ : ∑' i : Q, volume (closure (V i)) ≤ volume (ball x ((1 + 2 * a₂) * r)) := by
     -- MeasureTheory.tsum_meas_le_meas_iUnion_of_disjoint
     sorry
