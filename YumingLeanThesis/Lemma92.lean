@@ -33,24 +33,12 @@ lemma special_left_cancelativity {a c : ENNReal} {b d: NNReal} (ha : a ≠ ⊤) 
 
 /- if radius is non-zero and non-infinity, then the closure of a ball is its respective closed ball.
 This lemma exists already for Metric, here we port it to EMetric. -/
-lemma closure_of_ball_eq_closedBall {E : Type} [SeminormedAddCommGroup E] [NormedSpace ℝ E] (x : E)
+lemma Emetric_closure_ball {E : Type} [SeminormedAddCommGroup E] [NormedSpace ℝ E] (x : E)
     {r : NNReal} (hr : r ≠ 0) : closure (ball x r) = closedBall x r := by
-  -- firstly, finite radius means closed balls in EMetric and Metric are equivalent
-  have h_closedball_equiv : closedBall x r = Metric.closedBall x r := Metric.emetric_closedBall_nnreal
 
-  -- finite radius also means open balls in EMetric and Metric are equivalent
-  have h_ball_equiv : ball x r = Metric.ball x r := Metric.emetric_ball_nnreal
-
-  -- therefore the closures of open balls in EMetric and Metric are also equivalent
-  have h_closure_ball_equiv : closure (ball x r) = closure (Metric.ball x r) := by rw [h_ball_equiv]
-
-  -- finally, use the fact that closure of a Metric ball is the closed ball
-  have hr' : r.toReal ≠ 0 := NNReal.coe_ne_zero.mpr hr
-  have h_metric_closed_ball : closure (Metric.ball x r) =
-      Metric.closedBall x r := closure_ball x hr'
-
-  rw [h_closedball_equiv, h_closure_ball_equiv]
-  exact h_metric_closed_ball
+  -- convert balls of both side into the Metric version
+  rw [Metric.emetric_closedBall_nnreal, Metric.emetric_ball_nnreal]
+  exact closure_ball x (NNReal.coe_ne_zero.mpr hr)
 
 
 variable {n : ℕ} {ι : Type*} {x : EuclideanSpace ℝ (Fin n)}
@@ -61,15 +49,15 @@ variable {n : ℕ} {ι : Type*} {x : EuclideanSpace ℝ (Fin n)}
 theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disjoint (V i) (V j))
     (hV₁ : ∀ i, ∃ x₁ ∈ V i, ball x₁ (a₁ * r) ⊆ V i) (hn : 0 < n)
     (hV₂ : ∀ i, ∃ x₂ : EuclideanSpace ℝ (Fin n), ∀ y₂, y₂ ∈ V i → y₂ ∈ ball x₂ (a₂ * r))
-    (hV₃ : ∀ i, IsOpen (V i)) (hr : r ≠ 0) (ha₂ : a₂ ≠ 0) :
+    (hV₃ : ∀ i, IsOpen (V i)) (hr : r ≠ 0) (ha₁ : a₁ ≠ 0) (ha₂ : a₂ ≠ 0) :
     {i : ι | (ball x r ∩ closure (V i)).Nonempty}.encard.toENNReal ≤ ((1 + 2 * a₂) ^ n / a₁ ^ n) := by
   set Q : Set ι :=  {i : ι | (ball x r ∩ closure (V i)).Nonempty}
   set q : ENat := Q.encard
 
   -- set up the assumption for below
-  have h_coeff : a₂ * r ≠ 0 := by
-    have h_coeff' : a₂ * r ≠ 0 := (mul_ne_zero_iff_right hr).mpr ha₂
-    norm_cast
+  have h_coeff₁ : a₁ * r ≠ 0 := (mul_ne_zero_iff_right hr).mpr ha₁
+  have h_coeff₂ : a₂ * r ≠ 0 := (mul_ne_zero_iff_right hr).mpr ha₂
+  have Fin_n_nonempty: Nonempty (Fin n) := Fin.pos_iff_nonempty.1 hn
 
   -- first line of the informal proof
   have h₁ : ∀ i, (closure (V i) ∩ (ball x r)).Nonempty → closure (V i) ⊆ ball x ((1 + 2 * a₂) * r) := by
@@ -94,7 +82,7 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
           have h_closed : closure (V i) ⊆ closure (ball w (a₂ * r)) := closure_mono hyw'
           -- We pvove p is in the closed ball with center w and radius a₂r
           have h_closedball : closure (ball w (a₂ * r)) =
-              closedBall w (a₂ * r) := closure_of_ball_eq_closedBall w h_coeff
+              closedBall w (a₂ * r) := Emetric_closure_ball w h_coeff₂
 
           have hpw : edist p w ≤ a₂ * r := by
             -- we prove that in EMetricSpace, the closure of the ball is the closed ball
@@ -181,12 +169,34 @@ theorem lemma_92 {a₁ a₂ r : NNReal} (hDis : ∀ (i j : ι), i ≠ j → Disj
     · exact Set.disjoint_of_subset hx₁b hx₂b (hDis i j hij)
 
 
-  have h₃ : ∑' i : Q, volume (closure (V i) ∩ ball x r) ≤ volume (ball x ((1 + 2 * a₂) * r)) := by
+  have h₃ : ∀ i : ι, ∃ x₁ ∈ V i, ball x₁ (a₁ * r) ⊆ V i ∧ volume (ball x₁ (ENNReal.toNNReal (a₁ * r))) =
+      ENNReal.ofReal ↑(a₁ * r) ^ Module.finrank ℝ (EuclideanSpace ℝ (Fin n)) *
+      ENNReal.ofReal (√Real.pi ^ Module.finrank ℝ (EuclideanSpace ℝ (Fin n)) /
+      Real.Gamma (↑(Module.finrank ℝ (EuclideanSpace ℝ (Fin n))) / 2 + 1)) := by
+    intro i
+    obtain ⟨x₁, hx₁a, hx₁⟩ := hV₁ i
+    refine Exists.intro x₁ ⟨hx₁a, ?_⟩
+    refine ⟨hx₁, ?_⟩
+    rw [Metric.emetric_ball_nnreal, volume_ball]
+    simp only [toNNReal_mul, toNNReal_coe, NNReal.coe_mul, finrank_euclideanSpace, Fintype.card_fin]
+
+
+  have h₄ : volume (ball x (ENNReal.toNNReal ((1 + 2 * a₂) * r))) = sorry := by
+    rw [Metric.emetric_ball_nnreal, volume_ball]
+    sorry
+
+  have h₅ : q * volume (ball x (a₁ * r)) ≤ volume (ball x (ENNReal.toNNReal ((1 + 2 * a₂) * r))) := by
+    sorry
+  /- have h₃ : ∑' i : Q, volume (closure (V i) ∩ ball x r) ≤ volume (ball x ((1 + 2 * a₂) * r)) := by
 
     have h₃a : ⋃ i : Q, (closure (V i) ∩ ball x r) ⊆ ball x ((1 + 2 * a₂ * r)) := by
       sorry
     -- MeasureTheory.tsum_meas_le_meas_iUnion_of_disjoint
-    sorry
+    have h₃b : ∑' i : Q, volume (closure (V i) ∩ ball x r) =
+        volume (⋃ i : Q, (closure (V i) ∩ ball x r)) := by
+      sorry
+
+    sorry -/
   sorry
 
 end lemma92
