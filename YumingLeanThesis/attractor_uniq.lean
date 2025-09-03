@@ -65,7 +65,7 @@ theorem ENNReal_lt_add_of_le_of_pos {a b c : ENNReal} (ha : a ≠ 0) (hb : b ≠
     b < c + a := by
   obtain rfl | hbc := eq_or_lt_of_le hbc
   · exact lt_add_right hb ha
-  exact lt_add_of_lt_of_nonneg hbc (zero_le _)
+  · exact lt_add_of_lt_of_nonneg hbc (zero_le _)
 
 
 -- here we prove the LipschitzWith.weaken lemma, except for LipschitzOnWith
@@ -83,12 +83,12 @@ between s and t is bounded by r, then there exists a point y in t such that the 
 is at most r. This is an extention of the `exists_edist_lt_of_hausdorffEdist_lt` lemma, which proves
 only the less than case, without requiring compactness of t. -/
 theorem compact_exists_edist_le_of_hausdorffEdist_le {α : Type} [PseudoEMetricSpace α]
-    {x : α} {s t : Set α} {r : ℝ≥0∞} (hx : x ∈ s) (ht : t.Nonempty)
-    (H : hausdorffEdist s t ≤ r) (htc : IsCompact t) : ∃ y ∈ t, edist x y ≤ r := by
-    have h₁ : infEdist x t ≤ r := by
-      have h₁' : infEdist x t ≤ hausdorffEdist s t := infEdist_le_hausdorffEdist_of_mem hx
+    {x : α} {S T : Set α} {r : ℝ≥0∞} (hx : x ∈ S) (ht : T.Nonempty)
+    (H : hausdorffEdist S T ≤ r) (htc : IsCompact T) : ∃ y ∈ T, edist x y ≤ r := by
+    have h₁ : infEdist x T ≤ r := by
+      have h₁' : infEdist x T ≤ hausdorffEdist S T := infEdist_le_hausdorffEdist_of_mem hx
       exact le_trans h₁' H
-    have h₂ : ∃ y ∈ t, infEdist x t = edist x y := exists_infEdist_eq_edist htc ht x
+    have h₂ : ∃ y ∈ T, infEdist x T = edist x y := exists_infEdist_eq_edist htc ht x
     -- bhavik pointed this lemma out
     obtain ⟨y, hy, hxy⟩ := h₂
     rw [hxy] at h₁
@@ -110,18 +110,18 @@ theorem lipschitzonwith_maps_compact_to_compact {α : Type} {β : Type} [PseudoE
 
 /- this is the lemma that, if f is a Lipschitz map on a set s, then it restricts the Hausdorff
 distance between two sets t and u by a factor of the lipschitz constant of f. -/
-theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D s t : Set α}
-    {f : α → α} {K : NNReal} (hs : s ⊆ D) (ht : t ⊆ D) (hsn : Nonempty s) (htn : Nonempty t)
-    (hsc : IsCompact s) (htc : IsCompact t) (hf : LipschitzOnWith K f D) :
-    hausdorffEdist (f '' s) (f '' t) ≤ K * hausdorffEdist s t := by
+theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {D S T : Set α}
+    {f : α → α} {K : NNReal} (hs : S ⊆ D) (ht : T ⊆ D) (hsn : Nonempty S) (htn : Nonempty T)
+    (hsc : IsCompact S) (htc : IsCompact T) (hf : LipschitzOnWith K f D) :
+    hausdorffEdist (f '' S) (f '' T) ≤ K * hausdorffEdist S T := by
 
   apply hausdorffEdist_le_of_mem_edist
-  · have h₁ : ∀ m ∈ s, ∃ n ∈ t, edist (f m) (f n) ≤ K * hausdorffEdist s t := by
+  · have h₁ : ∀ m ∈ S, ∃ n ∈ T, edist (f m) (f n) ≤ K * hausdorffEdist S T := by
       intro m hm
-      have h₁' : ∀ m ∈ s, ∃ n ∈ t, edist m n ≤ hausdorffEdist s t := by
+      have h₁' : ∀ m ∈ S, ∃ n ∈ T, edist m n ≤ hausdorffEdist S T := by
         intro m hm
         exact compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
-            (Preorder.le_refl (hausdorffEdist s t)) htc
+            (Preorder.le_refl (hausdorffEdist S T)) htc
       specialize h₁' m hm
       cases' h₁' with n hn
       obtain ⟨hnt, hmn⟩ := hn
@@ -140,12 +140,12 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
     subst right
     simp_all only
 
-  · have h₁ : ∀ m ∈ t, ∃ n ∈ s, edist (f m) (f n) ≤ K * hausdorffEdist t s := by
+  · have h₁ : ∀ m ∈ T, ∃ n ∈ S, edist (f m) (f n) ≤ K * hausdorffEdist T S := by
       intro m hm
-      have h₁' : ∀ m ∈ t, ∃ n ∈ s, edist m n ≤ hausdorffEdist t s := by
+      have h₁' : ∀ m ∈ T, ∃ n ∈ S, edist m n ≤ hausdorffEdist T S := by
         intro m hm
         exact compact_exists_edist_le_of_hausdorffEdist_le hm (Set.Nonempty.of_subtype)
-            (Preorder.le_refl (hausdorffEdist t s)) hsc
+            (Preorder.le_refl (hausdorffEdist T S)) hsc
       specialize h₁' m hm
       cases' h₁' with n hn
       obtain ⟨hnt, hmn⟩ := hn
@@ -154,7 +154,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
       · exact hnt
       · exact LipschitzOnWith.edist_le_mul_of_le hf (ht hm) (hs hnt) hmn
 
-    have hst : hausdorffEdist s t = hausdorffEdist t s := hausdorffEdist_comm
+    have hst : hausdorffEdist S T = hausdorffEdist T S := hausdorffEdist_comm
     aesop -- same aesop as above, not expanded here
 
 
@@ -164,7 +164,7 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
 variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal)
-  (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)} (ε : ENNReal)
+  (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)}
   (x : EuclideanSpace ℝ (Fin n)) {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
 
