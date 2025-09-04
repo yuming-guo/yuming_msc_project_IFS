@@ -163,14 +163,14 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
 /- Define some variables: D ∈ ℝ^n, define c and f, indexed by ι - f i corresponds to the individual
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
-variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal)
-    (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)}
+variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*}
+    {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)}
     {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
 
 /- The lemma that d(S(A), S(B) ≤ max_{1 ≤ i ≤ m} d(S_i(A), S_i(B).
 Let it such that if x is in D, then S_i(x) is in D; Define S(A) to be the union of all S_i(A)s. -/
-theorem dist_union_le_sup_ind_dist (hD : IsCompact D)
+theorem dist_union_le_sup_ind_dist (hD : IsCompact D) (c : ι → NNReal)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
     ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D →
@@ -229,7 +229,7 @@ theorem dist_union_le_sup_ind_dist (hD : IsCompact D)
 
 -- now we move on to proving [1][p.125, equation 9.5], i.e. the union of the contractions has
 -- lipschitz constant at most the supremum of the individual lipschitz constants
-theorem union_of_lipschitz_contracts (hD : IsCompact D)
+theorem union_of_lipschitz_contracts (hD : IsCompact D) (c : ι → NNReal)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D):
     ∀ A B, A.Nonempty → B.Nonempty → IsCompact A → IsCompact B → A ⊆ D → B ⊆ D →
@@ -239,7 +239,7 @@ theorem union_of_lipschitz_contracts (hD : IsCompact D)
   -- we begin by applying the previous lemma
   have h : hausdorffEdist (S A) (S B) ≤
       (⨆ i, hausdorffEdist (f i '' A) (f i '' B)) := by
-    exact dist_union_le_sup_ind_dist c hD hS hSi A B hAn hBn hAc hBc hAD hBD
+    exact dist_union_le_sup_ind_dist hD c hS hSi A B hAn hBn hAc hBc hAD hBD
 
   have h' : ⨆ i, hausdorffEdist (f i '' A) (f i '' B) ≤
       (⨆ i, c i) * hausdorffEdist A B := by
@@ -313,10 +313,22 @@ theorem union_of_lipschitz_contracts (hD : IsCompact D)
 
 open TopologicalSpace
 
-theorem attractor_uniq [Fintype ι] [Nonempty ι] (hD : IsCompact D)
+lemma NonemptyCompacts.edist_eq {α : Type*} [MetricSpace α] {x y : TopologicalSpace.NonemptyCompacts α} :
+    edist x y = hausdorffEdist (x : Set α) (y : Set α) := by
+  rw [edist_dist, NonemptyCompacts.dist_eq]
+  rw [Metric.hausdorffDist.eq_1]
+  simp only [ofReal_toReal_eq_iff, ne_eq]
+  have x_compact : IsCompact (x : Set α) := NonemptyCompacts.isCompact x
+  have y_compact : IsCompact (y : Set α) := NonemptyCompacts.isCompact y
+  exact hausdorffEdist_ne_top_of_nonempty_of_bounded (NonemptyCompacts.nonempty x)
+      (NonemptyCompacts.nonempty y) (IsCompact.isBounded x_compact) (IsCompact.isBounded y_compact)
+
+theorem attractor_uniq [Fintype ι] [Nonempty ι] (c : ι → NNReal) (D_compact : IsCompact D)
+    (D_nonempty : D.Nonempty) (hfi : ∀ i, Set.MapsTo (f i) D D)
     (hS : ∀ A : Set (EuclideanSpace ℝ (Fin n)), IsCompact A → S A = ⋃ i, (f i '' A))
     (hc : ∀ i, c i < 1) (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) :
-    ∃! A ⊆ D, S A = A := by
+    ∃ A ⊆ D, Function.IsFixedPt S A := by
+
   -- we first show that S(A) is nonempty
   have s_nonempty (A : Set (EuclideanSpace ℝ (Fin n))) (hA : A.Nonempty) (hA' : IsCompact A) :
       (S A).Nonempty := by
@@ -344,27 +356,107 @@ theorem attractor_uniq [Fintype ι] [Nonempty ι] (hD : IsCompact D)
     -- finite union of compact sets is compact
     refine isCompact_iUnion fi_compact
 
+  classical
   let S' : NonemptyCompacts (EuclideanSpace ℝ (Fin n)) → NonemptyCompacts (EuclideanSpace ℝ (Fin n)) :=
     fun A ↦
-    { carrier := S A,
-      isCompact' :=
-        sorry
-      nonempty' :=
-        sorry }
+    { carrier := if (A : Set (EuclideanSpace ℝ (Fin n))) ⊆ D then S A else D,
+      isCompact' := by
+        split
+        rename_i hAD
+        · apply s_compact
+          · exact hAD
+          · exact NonemptyCompacts.nonempty A
+          · exact NonemptyCompacts.isCompact A
+        exact D_compact
+      nonempty' := by
+        split
+        rename_i hAD
+        · apply s_nonempty
+          · exact NonemptyCompacts.nonempty A
+          · exact NonemptyCompacts.isCompact A
+        · exact D_nonempty
+    }
+
   let s : Set (NonemptyCompacts (EuclideanSpace ℝ (Fin n))) := { A | A.carrier ⊆ D }
-  have s_complete : IsComplete s := by sorry
+  have s_complete : IsComplete s := by
+    have s_isClosed : IsClosed s := by
+      apply NonemptyCompacts.isClosed_subsets_of_isClosed
+      exact IsCompact.isClosed D_compact
+    exact IsClosed.isComplete s_isClosed
+
   have s_mapsTo : Set.MapsTo S' s s := by
-    sorry
+    delta Set.MapsTo
+    intro x hxs
+    refine Set.mem_setOf.mpr ?_
+    simp only [S']
+    split
+    · rename_i hxD
+      rw [hS]
+      · have h₁ : ∀ i, f i '' x ⊆ D := by
+          intro i
+          have h₂ : ∀ m ∈ x, f i m ∈ D := by
+            intro m hmx
+            have hmd : m ∈ D := hxs hmx
+            delta Set.MapsTo at hfi
+            specialize hfi i
+            exact hfi (hxs hmx)
+          exact Set.image_subset_iff.mpr h₂
+        exact Set.iUnion_subset h₁
+      · exact NonemptyCompacts.isCompact x
+    · simp only [subset_refl]
+
   have s_contracts : ContractingWith (⨆ i, c i) (Set.MapsTo.restrict S' s s s_mapsTo) := by
     refine ⟨?_, ?_⟩
-    · sorry
+    · have h₁ := Set.Nonempty.ciSup_lt_iff (s := Set.univ) (ι := ι) (f := c) (a := 1) (by simp) (Set.finite_univ)
+      simp at h₁
+      rw [h₁]
+      exact hc
     · intro ⟨A, hA⟩ ⟨B, hB⟩
       simp only [Set.MapsTo.restrict, Subtype.map, Subtype.edist_mk_mk, ge_iff_le]
-      sorry
+      repeat rw [NonemptyCompacts.edist_eq]
+      simp only [S']
+      simp only [NonemptyCompacts.coe_mk, Compacts.coe_mk]
+      split
+      rename_i hAD
+      split
+      rename_i hBD
+      apply union_of_lipschitz_contracts
+      · exact D_compact
+      · exact hS
+      · exact hc
+      · exact hSi
+      · exact NonemptyCompacts.nonempty A
+      · exact NonemptyCompacts.nonempty B
+      · exact NonemptyCompacts.isCompact A
+      · exact NonemptyCompacts.isCompact B
+      · exact hAD
+      · exact hBD
+      · (expose_names; exact False.elim (h hB))
+      · (expose_names; exact False.elim (h hA))
+
   let A := ContractingWith.efixedPoint' S' s_complete s_mapsTo s_contracts
 
-  sorry
+  have h_banach : ∃ y ∈ s, Function.IsFixedPt S' y := by
+    let D' : NonemptyCompacts (EuclideanSpace ℝ (Fin n)) := ⟨⟨D, D_compact⟩, D_nonempty⟩
+    have D'_subset : D' ∈ s := by
+      exact fun ⦃a⦄ a ↦ a
+    have D'_findist : edist D' (S' D') ≠ ⊤ := by
+      exact edist_ne_top D' (S' D')
+    obtain ⟨fixedpt, fixedpt_contain, isfixedpt, _⟩ :=
+        ContractingWith.exists_fixedPoint' s_complete s_mapsTo s_contracts D'_subset D'_findist
+    use fixedpt
 
-
+  cases' h_banach with G hG
+  obtain ⟨hGs, G_fixed⟩ := hG
+  use G
+  constructor
+  · exact hGs
+  · delta Function.IsFixedPt
+    delta Function.IsFixedPt at G_fixed
+    simp only [NonemptyCompacts.ext_iff, NonemptyCompacts.coe_mk, Compacts.coe_mk, S'] at G_fixed
+    split at G_fixed
+    · rename_i hGD
+      exact G_fixed
+    · (expose_names; exact False.elim (h hGs))
 
 end theorem_91 -- close the namespace
