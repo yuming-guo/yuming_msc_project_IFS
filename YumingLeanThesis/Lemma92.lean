@@ -35,7 +35,6 @@ lemma special_left_cancelativity {a c : ENNReal} {b d: NNReal} (ha : a ≠ ⊤) 
 This lemma exists already for Metric, here we port it to EMetric. -/
 lemma Emetric_closure_ball {E : Type} [SeminormedAddCommGroup E] [NormedSpace ℝ E] (x : E)
     {r : NNReal} (hr : r ≠ 0) : closure (ball x r) = closedBall x r := by
-
   -- convert balls of both side into the Metric version
   rw [Metric.emetric_closedBall_nnreal, Metric.emetric_ball_nnreal]
   exact closure_ball x (NNReal.coe_ne_zero.mpr hr)

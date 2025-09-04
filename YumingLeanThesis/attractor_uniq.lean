@@ -164,46 +164,9 @@ theorem lipschitz_restricts_hausdorff_dist {α : Type} [PseudoEMetricSpace α] {
 S_is in the informal proof, c i corresponds to each indiviual c_is, the factors in the contraction.
 Finally we define S to be the union of all S_is. -/
 variable {n : ℕ} {D : Set (EuclideanSpace ℝ (Fin n))} {ι : Type*} (c : ι → NNReal)
-  (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)}
-  (x : EuclideanSpace ℝ (Fin n)) {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
+    (i : ι) {f : ι → EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)}
+    {S : Set (EuclideanSpace ℝ (Fin n)) → Set (EuclideanSpace ℝ (Fin n))}
 
-
--- this is the lemma that contractions map bounded sets to bounded sets
-theorem contr_maps_bounded_to_bounded (hc : ∀ i, c i < 1)
-    (hSi : ∀ i, LipschitzOnWith (c i) (f i) D) :
-    ∀ A ⊆ D, IsBounded A → IsBounded (f i '' A) := by
-  intro A hAD hA
-  -- unwrap boundedness definition
-  rw [Metric.isBounded_iff] at hA
-  rw [Metric.isBounded_iff]
-  rcases hA with ⟨C, hC⟩
-
-  -- we  show that the image of A under f i is bounded by C
-  have h1 : ∀ x ∈ A, ∀ y ∈ A, dist (f i x) (f i y) ≤ C := by
-    intro x hx y hy
-    -- use the definition of Lipschitz condition of f i
-    have h1a : ∀ x ∈ A, ∀ y ∈ A, dist (f i x) (f i y) ≤ c i * dist x y := by
-      apply LipschitzOnWith.dist_le_mul
-      exact LipschitzOnWith.mono (hSi i) hAD
-    -- use the fact that the Lipschitz constant c i is less than 1 for all i
-    have h1b : ∀ x ∈ A, ∀ y ∈ A, dist (f i x) (f i y) ≤ dist x y := by
-      intro x hx y hy
-      have h1b' : c i * dist x y ≤ dist x y := by -- does this really need to be a separate step?
-        have h1b'' : c i ≤ 1 := le_of_lt (hc i)
-        exact mul_le_of_le_one_left dist_nonneg h1b''
-      specialize h1a x hx y hy
-      exact le_trans' h1b' h1a
-    have h1c : dist x y ≤ C := by simp_all only
-    specialize h1b x hx y hy
-    exact le_trans' h1c h1b
-
-  -- this was all an aesop, perhaps can be simplified
-  simp_all only [Set.mem_image, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
-  apply Exists.intro
-  · intro a a_1 a_2 a_3
-    apply h1
-    · exact a_1
-    · exact a_3
 
 /- The lemma that d(S(A), S(B) ≤ max_{1 ≤ i ≤ m} d(S_i(A), S_i(B).
 Let it such that if x is in D, then S_i(x) is in D; Define S(A) to be the union of all S_i(A)s. -/
@@ -335,18 +298,15 @@ theorem union_of_lipschitz_contracts (hD : IsCompact D)
     have h₂ : ∀ i, (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by
       intro i
       have h₁b₂ : hausdorffEdist A B ≤ hausdorffEdist A B := le_rfl -- this is a bit sus
-      refine mul_le_mul ?_ h₁b₂ ?_ ?_
       specialize hci i
-      · exact coe_le_coe.mpr hci
-      · exact zero_le (hausdorffEdist A B)
+      refine mul_le_mul (coe_le_coe.mpr hci) h₁b₂ (zero_le (hausdorffEdist A B)) ?_
       · simp_all only [le_refl, zero_le]
 
     simp only [iSup_le_iff]
     intro i
     specialize h₁ i
     specialize hci i
-    have h₃ : (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by
-      simp_all
+    have h₃ : (c i) * hausdorffEdist A B ≤ (⨆ i, c i) * hausdorffEdist A B := by simp_all only
     exact le_trans h₁ h₃
   exact le_trans h h'
 
