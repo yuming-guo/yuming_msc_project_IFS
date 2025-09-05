@@ -434,8 +434,6 @@ theorem attractor_uniq [Fintype ι] [Nonempty ι] (c : ι → NNReal) (D_compact
       · (expose_names; exact False.elim (h hB))
       · (expose_names; exact False.elim (h hA))
 
-  let A := ContractingWith.efixedPoint' S' s_complete s_mapsTo s_contracts
-
   have h_banach : ∃ y ∈ s, Function.IsFixedPt S' y := by
     let D' : NonemptyCompacts (EuclideanSpace ℝ (Fin n)) := ⟨⟨D, D_compact⟩, D_nonempty⟩
     have D'_subset : D' ∈ s := by
